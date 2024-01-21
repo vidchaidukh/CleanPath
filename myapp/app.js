@@ -61,21 +61,33 @@ let iconOptions = {
     icon:redIcon
 }
 
+function get_icon(percent){
+    let icon_src = ''
+    if (percent > 90){
+        icon_src = "style/red_bin.png"
+    }else if (percent > 75){
+        icon_src = "style/orange_bin.png"
+    }else if (percent > 50){
+        icon_src = "style/yellow_bin.png"
+    }else{
+        icon_src = "style/green_bin.png"
+    }
+    return (L.icon({
+        iconUrl: icon_src,
+        iconSize: [40, 40],
+        popupAnchor: [0, -10]
+    })    )
+}
 const markers_json = require('./markers.json'); 
 let markers = []
+let buckets_fullness = []
 for (let mkr_ind in markers_json) {
     mkr = markers_json[mkr_ind]
-    if (mkr['fill_status'] > 90){
-        mkr_icon = redIcon
-    }else if (mkr['fill_status'] > 60){
-        mkr_icon = yellowIcon
-    }else{
-        mkr_icon = greenIcon
-    }
-    new_marker = L.marker([mkr['lat'], mkr['lon']], {icon: mkr_icon})
+    new_marker = L.marker([mkr['lat'], mkr['lon']], {icon: get_icon(mkr['fill_status'])})
                     .bindPopup(mkr['popup'] + 
                     '<br>Filled up ' + mkr['fill_status'] + '%'),
     markers.push(new_marker)
+    buckets_fullness.push(Number(mkr['fill_status']))
  }
 
 // Add baseLayers and overlays to layer panel
@@ -86,34 +98,32 @@ var overlays = {
 };
 L.control.layers(baseLayers).addTo(map);
 L.control.layers(null, overlays).addTo(map);
+let marker = new L.Marker([50.398845,30.5070573] , {icon : get_icon(76)});
+marker.addTo(map);
+marker.bindPopup('content').openPopup();
+marker.addEventListener("click", update_markers);
 
-
-
-
-function update_markers(){
-    let marker = new L.Marker([50.398845,30.5070573] , iconOptions);
-    marker.addTo(map);
-    marker.bindPopup('content').openPopup();
-    marker.addEventListener ("click", move_bucket, false);
-    function move_bucket(){
-        console.log(marker)
-        new_lat = marker['_latlng']['lat']*(0.995 + Math.random() * .010);
-        new_lon = marker['_latlng']['lng']*(0.995 + Math.random() * .010);
-        console.log(new_lat)
-        var newLatLng = new L.LatLng(new_lat, new_lon);
-        marker.setLatLng(newLatLng); 
+filling_state = true
+let filling_interval = 0
+function update_markers() {
+    if (filling_state){
+        filling_interval = setInterval(fill_buckets, 500)
+    }else{
+        clearInterval(filling_interval);
     }
-    while (1){
-        markers.forEach((marker) => {
-            console.log(marker)
-            new_lat = marker['_latlng']['lat']*Math.floor(Math.random() * 0.005);
-            new_lon = marker['_latlng']['lng']*Math.floor(Math.random() * 0.005);
-            var newLatLng = new L.LatLng(new_lat, new_lon);
-            marker.setLatLng(newLatLng); 
-        })
-        setTimeout(function() {
-            statement2();
-        }, 500);
+    filling_state = !filling_state
+}
+
+function fill_buckets(){
+    for(let mrkr in markers) {
+        if (buckets_fullness[mrkr] < 100){
+            let new_fullness = (buckets_fullness[mrkr] + Math.random() * 2).toFixed(2)
+            if (new_fullness > 100) {new_fullness = 100}
+            console.log(new_fullness)
+            buckets_fullness[mrkr] = Number(new_fullness)
+            markers[mrkr].setPopupContent('This is bucket №' + mrkr +
+            '<br>Filled up ' + new_fullness + '%') 
+            markers[mrkr].setIcon(get_icon(new_fullness))
+        }  
     }
 }
-//setTimeout(update_markers, 5000, "First task");
