@@ -1,0 +1,30 @@
+{
+  "name": "cleanpath",
+  "version": "1.0.0",
+  "description": "information system for solid waste management company",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vidchaidukh/CleanPath.git"
+  },
+  "keywords": [
+    "IS",
+    "system",
+    "management",
+    "waste",
+    "disposal",
+    "map"
+  ],
+  "author": "Yevhenii Mykhailiuk",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vidchaidukh/CleanPath/issues"
+  },
+  "homepage": "https://github.com/vidchaidukh/CleanPath#readme",
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  }
+}
