@@ -7,3 +7,20 @@ html, body, #map {
     width: 100vw;
     
 }
+button{
+    position: absolute;
+    bottom: 5px;
+    left: 10px; 
+    padding-left: 10px;
+    z-index: 1000;
+    height: 60px;
+    line-height: 30px;  
+    width: 60px;  
+    font-size: 2em;
+    font-weight: bold;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+}
