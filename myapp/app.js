@@ -73,8 +73,6 @@ function get_buckets(){
     }
     return [buckets, buckets_json]
 }
-let [buckets_display, buckets] = get_buckets()
-buckets_layer = L.layerGroup(buckets_display).addTo(map)
 
 function get_trucks(){
     truck_icon = L.icon({
@@ -87,14 +85,19 @@ function get_trucks(){
     for (let t_ind in trucks_json) {
         obj = trucks_json[t_ind]
         let new_truck = L.marker([obj['lat'], obj['lon']], {icon: truck_icon}, {riseOnHover: true})
-                        .bindPopup('truck №' + (ind/1) + 
-                        '<br>Route: ' + obj['route'])
+                        .bindPopup('<b>Truck №' + (t_ind/1) + '</b>')
         trucks.push(new_truck)
     }
     // Add baseLayers and overlays to layer panel
     return [trucks, trucks_json]
 }
+
+let [buckets_display, buckets] = get_buckets()
 let [trucks_display, trucks] = get_trucks()
+show_buckets()
+show_trucks()
+
+buckets_layer = L.layerGroup(buckets_display).addTo(map)
 trucks_layer = L.layerGroup(trucks_display).addTo(map)
 let overlays = {
 	'buckets': buckets_layer,
@@ -106,6 +109,7 @@ L.control.layers(null, overlays).addTo(map);
 function add_buttons(){
     let button_filling = document.createElement('button');
     button_filling.setAttribute("id", "filling");
+    button_filling.setAttribute("class", "circle_button");
     button_filling.textContent = '▶';
     button_filling.setAttribute('title', "buckets' filling process");
     button_filling.addEventListener("click", filling_func);
@@ -113,12 +117,14 @@ function add_buttons(){
 
     let button_add = document.createElement('button');
     button_add.setAttribute("id", "driving");
+    button_add.setAttribute("class", "circle_button");
     button_add.textContent = 'drive';
     button_add.addEventListener("click", adding_func);
     document.body.appendChild(button_add);
 
     let button_distribute = document.createElement('button');
     button_distribute.setAttribute("id", "distribute");
+    button_distribute.setAttribute("class", "circle_button");
     button_distribute.textContent = '📃';
     button_distribute.setAttribute('title', 'disctribute buckets among trucks');
     button_distribute.addEventListener("click", distribute);
@@ -165,6 +171,7 @@ function update_bucket(b_ind, new_fullness){
 function update_truck(t_ind){
     trucks_display[t_ind].setPopupContent('<b>Truck №' + t_ind +'</b><br>' +
                             'Route: ' + trucks[t_ind].route.join('<br>'))
+    show_trucks()
 }
 function fill_buckets(){
     for(let b_ind in buckets) {
@@ -173,13 +180,14 @@ function fill_buckets(){
             if (new_fullness > 100) {new_fullness = 100}
             update_bucket(b_ind, new_fullness)
         }
-        if (buckets[b_ind].fill_status > 75 && !(is_in_route(b_ind))){
+        if (buckets[b_ind].fill_status > 75 && !is_in_route(b_ind)){
             add_bucket_to_route(b_ind)
         }
     }
+    show_buckets()
 }
 function is_in_route(b_ind){
-    finded = false
+    let finded = false
     trucks.forEach(truck => {
         if (truck.route.includes(b_ind)){
             finded = true
@@ -197,26 +205,26 @@ function add_bucket_to_route(b_ind){
     t_ind = t_dist.indexOf(Math.min(...t_dist))
     trucks[t_ind].route.push(b_ind)
     update_truck(t_ind)
-    console.log('add bucket ' + b_ind + ' to ' + t_ind + " truck's route!")
+    write_log('add bucket ' + b_ind + ' to ' + t_ind + " truck's route!")
 
 }
 function move_trucks(){
     let speed = 30
     for (let t_ind in trucks){
         if (trucks[t_ind].route.length){
-            console.log('mooove' + t_ind)
             lat_diff = (buckets[trucks[t_ind].route[0]].lat - trucks[t_ind].lat)
             lon_diff = (buckets[trucks[t_ind].route[0]].lon - trucks[t_ind].lon)
 
             if (Math.abs(lat_diff) + Math.abs(lon_diff) < 0.00005){
                 update_bucket(trucks[t_ind].route[0], 0)
+                write_log('truck ' + t_ind + ' picked up bucket №' + trucks[t_ind].route[0])
                 trucks[t_ind].route.shift()
                 update_truck(t_ind)
+                show_buckets()
             }else{
             if (Math.abs(lat_diff) < 0.00005){lat_diff*=speed}
             if (Math.abs(lon_diff) < 0.00005){lon_diff*=speed}
 
-            console.log(lat_diff, lon_diff)
             new_lat = trucks[t_ind].lat + lat_diff/speed
             new_lon = trucks[t_ind].lon + lon_diff/speed
             trucks[t_ind].lat = new_lat
@@ -236,7 +244,11 @@ function distribute(){
     let generations = 100;
     let mutationRate = 0.1;
 
-    let full_buckets = buckets.filter(function(x) { return x.fill_status > 75; });
+    let full_buckets = []
+    buckets.forEach(bucket => {
+        if(bucket.fill_status > 75 && !is_in_route(bucket.id)){
+            full_buckets.push(bucket) 
+    }})
     let bestChromosome = geneticAlgorithm(trucks, full_buckets, generations, mutationRate);
 
     // Розподіл смітників за оптимальним хромосомою
@@ -247,6 +259,101 @@ function distribute(){
     for (let t_ind in trucks){
         update_truck(t_ind)
     }
+    write_log('distributed full buckets (' + full_buckets.length + ') among trucks');
+}
 
-    console.log(trucks);
+function show_view(active){
+    let views = ['trucks_view', 'buckets_view', 'logs_view']
+    let controls = ['trucks_control', 'buckets_control', 'logs_control']
+
+    document.getElementById(controls.splice(active, 1)).disabled = true
+    controls.forEach(element => {
+        document.getElementById(element).disabled = false
+    });
+    document.getElementById(views.splice(active, 1)).hidden = false
+    views.forEach(element => {
+        document.getElementById(element).hidden = true
+    });
+
+}
+
+function add_panel(){
+    b_btn = document.getElementById('buckets_control')
+    b_btn.addEventListener('click', function() {show_view(1)})
+    b_btn.disabled = true;
+    document.getElementById('trucks_control').addEventListener('click', function() {show_view(0)})
+    document.getElementById('logs_control').addEventListener('click', function() {show_view(2)})
+    document.getElementById('b_search_control').addEventListener('click', b_search)
+    document.getElementById('t_search_control').addEventListener('click', t_search)
+    document.getElementById('b_search').addEventListener("keydown", function (e) {
+        if (e.code === "Enter") {  //checks whether the pressed key is "Enter"
+            b_search()
+        }
+    });
+    document.getElementById('t_search').addEventListener("keydown", function (e) {
+        if (e.code === "Enter") {  //checks whether the pressed key is "Enter"
+            t_search()
+        }
+    });
+
+}
+add_panel()
+
+function show_trucks(){
+    view = document.getElementById('trucks_view')
+    view.innerHTML = ''
+    html_str = ''
+    trucks.forEach(truck => {
+        let route = ''
+        if(truck.route.length) {route = truck.route.join('<br>') + '<br>'}
+        html_str += '<div class="number"><b>Truck №' + truck.id + '</b></div><div class="item">' + route + '</div>'
+    });
+    view.innerHTML=html_str
+}
+function show_buckets(){
+    view = document.getElementById('buckets_view')
+    view.innerHTML = ''
+    html_str = ''
+    buckets.forEach(bucket => {
+        html_str += '<div class="number"><b>Bucket №' + bucket.id + '</b></div><div class="item">' +
+                    bucket.address + '<br>' +
+                    bucket.lat + ', ' + bucket.lon + '<br>' +
+                    'Filled up to ' + bucket.fill_status  + '%' + '</div>'
+    });
+    view.innerHTML=html_str
+}
+function write_log(str){
+    view = document.getElementById('logs_view')
+    html_str = '<div class="item">' + str + '</div>'
+    view.innerHTML += html_str
+    view.scrollTop = view.scrollHeight;
+}
+function b_search(){
+    inp = document.getElementById('b_search').value
+    b_ind = Number(inp)
+    if (buckets[b_ind]){
+        coord = [buckets[b_ind].lat, buckets[b_ind].lon]
+        map.flyTo(coord, 12);
+        buckets_display[b_ind].openPopup()
+        write_log('Found bucket № ' + inp)
+    }else{
+        alert('Bucket № '+ inp + " don't exist")
+        write_log('Could not find bucket №' + inp)
+
+    }
+}
+
+function t_search(){
+    inp = document.getElementById('t_search').value
+    t_ind = Number(inp)
+    if (trucks[t_ind]){
+        coord = [trucks[t_ind].lat, trucks[t_ind].lon]
+        map.flyTo(coord, 12);
+        trucks_display[t_ind].openPopup()
+        write_log('Found truck № ' + inp)
+    }else{
+        alert('Truck № '+ inp + " don't exist")
+        write_log('Could not find a truck № ' + inp)
+
+    }
 }

@@ -11,8 +11,41 @@
 </head>
 <body>
 		<div id="map"></div>
+		<div id="panel">
+			<div id="switch-bar">
+				<button id="trucks_control" >
+					Trucks
+				 </button>
+				 <button id="buckets_control" disabled="">
+					Buckets
+				 </button>
+				 <button id="logs_control">
+					Logs
+				 </button>
+				 
+			</div>
+			<div id="views">
+			<div id="trucks_view"  hidden=""	>
+				
+			</div>
+			<div id="buckets_view">
+				
+			</div>
+			<div id="logs_view" hidden="">
+				
+			</div>
+			</div>
+		</div>
+		<div id="search">
+			<label for="b_search">Buсket №</label>
+			<input type="text" name="b_search" id="b_search" autocomplete="off"/>
+			<button id="b_search_control">bucket🔍</button>
+			<br>
+			<label for="t_search">Truck №</label>
+			<input type="text" name="t_search" id="t_search" autocomplete="off"/>
+			<button id="t_search_control">truck🔍</button>
 
-
+		</div>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
 		<script src='bundle.js'></script>
 		<script src="genetic_distribution.js"></script>
